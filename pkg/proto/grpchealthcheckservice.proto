@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/erteldg/pkg/proto";
+
+service StatusService {
+  rpc GetStatus (StatusRequest) returns (StatusResponse) {}
+}
+
+message StatusRequest {}
+
+message StatusResponse {
+  repeated Namespace namespaces = 1;
+}
+
+message Namespace {
+  string name = 1;
+  repeated Pod pods = 2;
+  repeated Service services = 3;
+}
+
+message Pod {
+  string name = 1;
+  string status = 2;
+}
+
+message Service {
+  string name = 1;
+}

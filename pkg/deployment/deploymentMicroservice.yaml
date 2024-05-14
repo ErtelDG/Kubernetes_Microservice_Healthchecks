@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: application-controller
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grphealthcheck
+  namespace: application-controller
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: grpchealthserv 
+  template:
+    metadata:
+      labels:
+        app: grpchealthserv 
+    spec:
+      serviceAccountName: application-controller-account
+      containers:
+        - name: grpchealthserv 
+          image: erteldg/grpchealthcheckservice:latest
+          ports:
+            - name: grpchealthserv  
+              containerPort: 50053
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grphealthcheck 
+  namespace: application-controller
+spec:
+  selector:
+    app: grpchealthserv 
+  ports:
+    - name: grpchealthserv  
+      port: 50053
+      targetPort: 50053
+  type: NodePort
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: application-controller-account
+  namespace: application-controller
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: namespace-manager
+rules:
+- apiGroups: ["", "apps"]
+  resources: ["namespaces", "deployments", "services", "pods"]
+  verbs: ["get", "list", "watch", "create", "delete", "update"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: namespace-manager-binding
+subjects:
+- kind: ServiceAccount
+  name: application-controller-account
+  namespace: application-controller
+roleRef:
+  kind: ClusterRole
+  name: namespace-manager
+  apiGroup: rbac.authorization.k8s.io
